@@ -1,5 +1,12 @@
 import React, { Component } from "react";
-import { View, Animated, PanResponder, Dimensions } from "react-native";
+import {
+  View,
+  Animated,
+  PanResponder,
+  Dimensions,
+  LayoutAnimation,
+  UIManager,
+} from "react-native";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SWIPE_THRESHOLD = 0.25 * SCREEN_WIDTH;
@@ -43,6 +50,12 @@ class Deck extends Component {
     }).start();
   }
 
+  componentWillUpdate() {
+    UIManager.setLayoutAnimationEnabledExperimental &&
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    LayoutAnimation.spring();
+  }
+
   forceSwipe(direction) {
     const force_x = direction === "right" ? SCREEN_WIDTH : -SCREEN_WIDTH;
 
@@ -79,33 +92,53 @@ class Deck extends Component {
       return this.props.renderNoMoreCards();
     }
 
-    return this.props.data.map((item, itemIndex) => {
-      if (itemIndex < this.state.index) {
-        return null;
-      }
+    return this.props.data
+      .map((item, itemIndex) => {
+        if (itemIndex < this.state.index) {
+          return null;
+        }
 
-      if (itemIndex === this.state.index) {
+        if (itemIndex === this.state.index) {
+          return (
+            <Animated.View
+              key={item.id}
+              style={[this.getCardStyle(), styles.cardStyle]}
+              {...this.state.panResponder.panHandlers}
+            >
+              {this.props.renderCard(item)}
+            </Animated.View>
+          );
+        }
         return (
           <Animated.View
             key={item.id}
-            style={this.getCardStyle()}
-            {...this.state.panResponder.panHandlers}
+            style={[
+              styles.cardStyle,
+              { top: 10 * (itemIndex - this.state.index) },
+            ]}
           >
             {this.props.renderCard(item)}
           </Animated.View>
         );
-      }
-      return this.props.renderCard(item);
-    });
+      })
+      .reverse();
   }
 
   render() {
     return (
-      <View>
+      <Animated.View>
         {this.renderCards()}
-      </View>
+      </Animated.View>
     );
   }
 }
+
+const styles = {
+  cardStyle: {
+    position: "absolute",
+    width: SCREEN_WIDTH,
+    elevation: 100,
+  },
+};
 
 export default Deck;
